@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOSIOLOGI XII - Globalisasi & Masyarakat Digital</title>
+
+    <!-- Google Fonts: Space Grotesk (Heading) & Outfit (Body) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        heading: ['"Space Grotesk"', 'sans-serif'],
+                        body: ['"Outfit"', 'sans-serif'],
+                    },
+                    colors: {
+                        tech: {
+                            bg: '#0D1117',
+                            emerald: '#00F59B',
+                            gold: '#FFD700',
+                            crimson: '#FF3E6C',
+                            white: '#FFFFFF',
+                        }
+                    },
+                    animation: {
+                        'glow': 'glow 2s ease-in-out infinite alternate',
+                        'slide-up': 'slideUp 0.5s ease-out forwards',
+                    },
+                    keyframes: {
+                        glow: {
+                            '0%': { boxShadow: '0 0 5px rgba(0, 245, 155, 0.2)' },
+                            '100%': { boxShadow: '0 0 20px rgba(0, 245, 155, 0.6)' },
+                        },
+                        slideUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #0D1117;
+            color: #FFFFFF;
+            overflow: hidden; /* Mencegah scroll body penuh, scroll hanya di area konten */
+        }
+
+        /* Glassmorphism Panel Kaca (10% opacity + 20px blur) */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        }
+
+        /* Navigasi Hover State */
+        .nav-btn {
+            transition: all 0.3s ease;
+        }
+        .nav-btn.active {
+            color: #00F59B;
+            text-shadow: 0 0 10px rgba(0, 245, 155, 0.5);
+        }
+        .nav-btn:hover:not(.active) {
+            color: #FFD700;
+        }
+
+        /* Kustom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #00F59B; }
+
+        /* Utilitas SPA */
+        .hidden-section { display: none !important; }
+
+        /* Flip Card (Apersepsi) */
+        .flip-card { perspective: 1000px; cursor: pointer; }
+        .flip-card-inner {
+            position: relative; width: 100%; height: 100%;
+            transition: transform 0.6s; transform-style: preserve-3d;
+        }
+        .flip-card.flipped .flip-card-inner { transform: rotateY(180deg); }
+        .flip-card-front, .flip-card-back {
+            position: absolute; width: 100%; height: 100%; top: 0; left: 0;
+            backface-visibility: hidden; border-radius: 1rem;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+        .flip-card-back { transform: rotateY(180deg); }
+        
+        /* Game Dropzone */
+        .drop-zone { transition: all 0.3s ease; }
+        .game-item { transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; }
+        .game-item.selected { transform: scale(1.05); box-shadow: 0 0 15px #FFD700; border-color: #FFD700; }
+        
+        /* Tambahan UI Kuis Kompleks & Emoji */
+        .emoji-btn { transition: transform 0.2s; opacity: 0.4; }
+        .emoji-btn.active { transform: scale(1.3); opacity: 1; text-shadow: 0 0 15px rgba(0, 245, 155, 0.8); }
+        .complex-opt.selected { border-color: #00F59B; background: rgba(0, 245, 155, 0.2); color: #00F59B; }
+    </style>
+</head>
+<body class="h-screen w-full flex flex-col font-body text-tech-white relative">
+
+    <!-- Modal Peringatan (Custom Alert) -->
+    <div id="custom-alert" class="fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeAlert()"></div>
+        <div class="glass-panel p-6 rounded-2xl max-w-sm w-full mx-4 relative z-10 text-center animate-slide-up border-tech-gold border-2">
+            <div id="alert-icon" class="text-5xl mb-4 text-tech-gold"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            <h3 id="alert-title" class="font-heading font-bold text-xl mb-2 text-tech-white">Perhatian</h3>
+            <p id="alert-message" class="text-sm text-gray-300 mb-6">Pesan peringatan di sini.</p>
+            <button onclick="closeAlert()" class="w-full py-2 bg-tech-emerald text-tech-bg font-bold rounded-lg hover:bg-opacity-80 transition">Mengerti</button>
+        </div>
+    </div>
+
+    <!-- 1. HEADER DASHBOARD -->
+    <header class="h-20 glass-panel border-b-0 border-white/10 flex justify-between items-center px-6 z-20 shrink-0 rounded-b-xl mx-2 mt-2">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 bg-tech-emerald/20 border border-tech-emerald rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(0,245,155,0.3)]">
+                <i class="fa-solid fa-earth-asia text-tech-emerald text-2xl animate-[spin_10s_linear_infinite]"></i>
+            </div>
+            <div>
+                <h1 class="font-heading text-2xl font-bold tracking-wide text-tech-white leading-tight">SOSIOLOGI XII</h1>
+                <p class="text-xs text-tech-gold tracking-widest uppercase">Materi: Globalisasi & Masyarakat Digital</p>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-6">
+            <!-- Progress Bar -->
+            <div class="hidden md:flex flex-col items-end gap-1">
+                <span class="text-xs text-gray-400">Progres Belajar</span>
+                <div class="w-48 h-2 bg-white/10 rounded-full overflow-hidden">
+                    <div id="progress-bar" class="h-full bg-tech-emerald shadow-[0_0_10px_#00F59B] w-1/5 transition-all duration-500"></div>
+                </div>
+            </div>
+            <!-- Audio Toggle -->
+            <button onclick="toggleAudio()" class="text-gray-400 hover:text-tech-gold transition text-xl" title="BGM/SFX">
+                <i id="audio-icon" class="fa-solid fa-volume-high"></i>
+            </button>
+            <!-- User Profile -->
+            <div class="w-10 h-10 rounded-full border-2 border-tech-gold overflow-hidden flex items-center justify-center bg-white/5">
+                <i class="fa-solid fa-user-astronaut text-tech-gold text-lg"></i>
+            </div>
+        </div>
+    </header>
+
+    <!-- AREA KONTEN UTAMA & SIDEBAR -->
+    <div class="flex-1 flex overflow-hidden mt-2 mx-2 gap-2 mb-2">
+        
+        <!-- 2. SIDEBAR NAVIGASI (Kiri) -->
+        <aside class="w-20 glass-panel rounded-xl flex flex-col items-center py-6 gap-8 shrink-0 relative z-10">
+            <button onclick="navigate('home', 0)" class="nav-btn active flex flex-col items-center gap-1 group" id="nav-home" title="Beranda">
+                <i class="fa-solid fa-house text-2xl group-hover:scale-110 transition-transform"></i>
+                <span class="text-[10px] font-heading font-semibold opacity-0 group-hover:opacity-100 transition-opacity absolute mt-8">Home</span>
+            </button>
+            
+            <button onclick="navigate('konsep', 1)" class="nav-btn flex flex-col items-center gap-1 text-tech-white group" id="nav-konsep" title="Peta Konsep & Apersepsi">
+                <i class="fa-solid fa-sitemap text-2xl group-hover:scale-110 transition-transform"></i>
+                <span class="text-[10px] font-heading font-semibold opacity-0 group-hover:opacity-100 transition-opacity absolute mt-8 w-20 text-center">Peta Konsep</span>
+            </button>
+            
+            <button onclick="navigate('materi', 2)" class="nav-btn flex flex-col items-center gap-1 text-tech-white group" id="nav-materi" title="Ruang Materi">
+                <i class="fa-solid fa-book-open-reader text-2xl group-hover:scale-110 transition-transform"></i>
+                <span class="text-[10px] font-heading font-semibold opacity-0 group-hover:opacity-100 transition-opacity absolute mt-8 w-20 text-center">Materi</span>
+            </button>
+            
+            <button onclick="navigate('evaluasi', 3)" class="nav-btn flex flex-col items-center gap-1 text-tech-white group" id="nav-evaluasi" title="Evaluasi & Kuis">
+                <i class="fa-solid fa-gamepad text-2xl group-hover:scale-110 transition-transform"></i>
+                <span class="text-[10px] font-heading font-semibold opacity-0 group-hover:opacity-100 transition-opacity absolute mt-8 w-20 text-center">Evaluasi</span>
+            </button>
+
+            <button onclick="navigate('refleksi', 4)" class="nav-btn flex flex-col items-center gap-1 text-tech-white group" id="nav-refleksi" title="Papan Refleksi">
+                <i class="fa-solid fa-chalkboard-user text-2xl group-hover:scale-110 transition-transform"></i>
+                <span class="text-[10px] font-heading font-semibold opacity-0 group-hover:opacity-100 transition-opacity absolute mt-8 w-20 text-center">Refleksi</span>
+            </button>
+
+            <button onclick="navigate('pengembang', 5)" class="nav-btn flex flex-col items-center gap-1 text-tech-white group" id="nav-pengembang" title="Profil Pengembang">
+                <i class="fa-solid fa-user-graduate text-2xl group-hover:scale-110 transition-transform"></i>
+                <span class="text-[10px] font-heading font-semibold opacity-0 group-hover:opacity-100 transition-opacity absolute mt-8 w-20 text-center">Pengembang</span>
+            </button>
+
+            <button onclick="navigate('referensi', 6)" class="nav-btn flex flex-col items-center gap-1 text-tech-white group" id="nav-referensi" title="Referensi & Sumber">
+                <i class="fa-solid fa-book-bookmark text-2xl group-hover:scale-110 transition-transform"></i>
+                <span class="text-[10px] font-heading font-semibold opacity-0 group-hover:opacity-100 transition-opacity absolute mt-8 w-20 text-center">Referensi</span>
+            </button>
+
+            <div class="mt-auto">
+                <button onclick="confirmExit()" class="text-tech-crimson hover:text-red-400 flex flex-col items-center gap-1 group transition" title="Keluar">
+                    <i class="fa-solid fa-power-off text-2xl group-hover:scale-110 transition-transform drop-shadow-[0_0_5px_#FF3E6C]"></i>
+                    <span class="text-[10px] font-heading font-semibold opacity-0 group-hover:opacity-100 transition-opacity absolute mt-8">Keluar</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- 3. BAGIAN TENGAH (Main Content) -->
+        <main class="flex-1 glass-panel rounded-xl p-4 md:p-8 overflow-y-auto relative scroll-smooth">
+            
+            <!-- SECTION 1: HOME (Dashboard Awal) -->
+            <section id="section-home" class="spa-section h-full flex flex-col justify-center animate-slide-up">
+                <div class="text-center mb-8">
+                    <h2 class="font-heading text-3xl md:text-5xl font-bold text-tech-white mb-2">Selamat Datang di Era <span class="text-tech-emerald">Masyarakat Digital</span></h2>
+                    <p class="text-gray-400 font-light max-w-2xl mx-auto">Mari eksplorasi transformasi sistem dunia dan sikapi arus globalisasi secara kritis.</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 h-full max-h-[400px]">
+                    <!-- Kartu Kiri (Teori Globalisasi) -->
+                    <div class="glass-panel bg-white/5 rounded-2xl p-6 md:p-8 border-l-4 border-l-tech-gold flex flex-col justify-between hover:bg-white/10 transition duration-300">
+                        <div>
+                            <div class="flex items-center gap-3 mb-4">
+                                <i class="fa-solid fa-globe text-3xl text-tech-gold"></i>
+                                <h3 class="font-heading text-2xl font-bold text-tech-gold uppercase tracking-wider">Dunia Tanpa Batas</h3>
+                            </div>
+                            <p class="text-tech-white font-body leading-relaxed text-sm md:text-base opacity-90">
+                                Globalisasi telah menghilangkan batasan ruang dan waktu (borderless world). Interaksi, pertukaran informasi, hingga perdagangan internasional kini berlangsung seketika melalui jaringan internet dan teknologi digital.
+                            </p>
+                        </div>
+                        <button onclick="navigate('konsep', 1)" class="mt-6 w-full py-3 bg-tech-emerald text-tech-bg font-bold font-heading rounded-lg hover:bg-opacity-80 transition transform hover:scale-[1.02] shadow-[0_0_15px_rgba(0,245,155,0.4)]">
+                            JELAJAHI DAMPAK <i class="fa-solid fa-arrow-right ml-2"></i>
+                        </button>
+                    </div>
+
+                    <!-- Kartu Kanan (Masyarakat Digital Sumut / Data) -->
+                    <div class="glass-panel bg-white/5 rounded-2xl p-6 md:p-8 border-l-4 border-l-tech-emerald flex flex-col justify-between hover:bg-white/10 transition duration-300 relative overflow-hidden">
+                        <!-- Latar belakang aksen radial -->
+                        <div class="absolute -top-20 -right-20 w-48 h-48 bg-tech-emerald/20 rounded-full blur-[40px] pointer-events-none"></div>
+                        
+                        <div>
+                            <div class="flex items-center gap-3 mb-4">
+                                <i class="fa-solid fa-chart-line text-3xl text-tech-emerald"></i>
+                                <h3 class="font-heading text-2xl font-bold text-tech-emerald uppercase tracking-wider">Digitalisasi Lokal</h3>
+                            </div>
+                            <p class="text-tech-white font-body leading-relaxed text-sm md:text-base opacity-90 mb-4">
+                                Data Pertumbuhan Akses E-Commerce & Internet di Sumatera Utara (Simulasi 2022-2026).
+                            </p>
+                            
+                            <!-- Grafik Garis Minimalis (SVG) -->
+                            <div class="w-full h-32 relative bg-black/20 rounded-lg p-2 flex items-end">
+                                <!-- Grid Lines -->
+                                <div class="absolute inset-0 flex flex-col justify-between px-2 py-3">
+                                    <div class="border-b border-white/10 w-full"></div>
+                                    <div class="border-b border-white/10 w-full"></div>
+                                    <div class="border-b border-white/10 w-full"></div>
+                                </div>
+                                <!-- Line Chart -->
+                                <svg viewBox="0 0 100 40" class="w-full h-full preserve-3d drop-shadow-[0_0_8px_#FFD700]">
+                                    <path d="M 0 35 Q 20 30, 40 20 T 70 10 T 100 5" fill="none" stroke="#FFD700" stroke-width="2" />
+                                    <!-- Points -->
+                                    <circle cx="0" cy="35" r="1.5" fill="#00F59B" />
+                                    <circle cx="40" cy="20" r="1.5" fill="#00F59B" />
+                                    <circle cx="70" cy="10" r="1.5" fill="#00F59B" />
+                                    <circle cx="100" cy="5" r="1.5" fill="#FF3E6C" />
+                                </svg>
+                                <!-- Labels -->
+                                <div class="absolute bottom-0 w-full flex justify-between text-[8px] text-gray-400 px-1 translate-y-4">
+                                    <span>2022</span><span>2024</span><span>2026</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 2: PETA KONSEP & APERSEPSI -->
+            <section id="section-konsep" class="spa-section hidden-section h-full animate-slide-up">
+                <div class="flex flex-col gap-8">
+                    <!-- Tujuan Pembelajaran (3 Kartu) -->
+                    <div>
+                        <h3 class="font-heading text-xl text-tech-gold mb-4 border-b border-white/10 pb-2"><i class="fa-solid fa-crosshairs mr-2"></i> Target Kompetensi Sosiologi</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="glass-panel p-4 rounded-xl border-t-2 border-t-tech-emerald">
+                                <div class="text-3xl text-tech-emerald mb-2 font-heading font-bold opacity-30">01</div>
+                                <p class="text-sm">Murid mampu <b>menjelaskan pengaruh globalisasi</b> bagi kehidupan masyarakat melalui pengamatan kasus secara tepat.</p>
+                            </div>
+                            <div class="glass-panel p-4 rounded-xl border-t-2 border-t-tech-gold">
+                                <div class="text-3xl text-tech-gold mb-2 font-heading font-bold opacity-30">02</div>
+                                <p class="text-sm">Murid mampu menjelaskan <b>realitas kehidupan masyarakat digital</b> melalui telaah sumber relevan secara benar.</p>
+                            </div>
+                            <div class="glass-panel p-4 rounded-xl border-t-2 border-t-tech-crimson">
+                                <div class="text-3xl text-tech-crimson mb-2 font-heading font-bold opacity-30">03</div>
+                                <p class="text-sm">Murid <b>menganalisis respons masyarakat</b> menyikapi globalisasi melalui penelitian sosial secara kritis.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pertanyaan Pemantik (Click to Reveal) -->
+                    <div>
+                        <h3 class="font-heading text-xl text-tech-emerald mb-4 border-b border-white/10 pb-2"><i class="fa-solid fa-lightbulb mr-2"></i> Apersepsi (Klik Kartu)</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 h-48">
+                            <!-- Flip Card 1 -->
+                            <div class="flip-card" onclick="this.classList.toggle('flipped'); playSFX('click')">
+                                <div class="flip-card-inner">
+                                    <div class="flip-card-front glass-panel rounded-xl shadow-lg border border-white/20 bg-black/40 p-6 text-center">
+                                        <i class="fa-solid fa-mobile-screen-button text-4xl text-gray-400 mb-3"></i>
+                                        <p class="font-heading font-semibold text-tech-white text-lg">Mengapa keluarga di ruang tamu yang sama justru sibuk menatap layar masing-masing?</p>
+                                    </div>
+                                    <div class="flip-card-back glass-panel rounded-xl shadow-lg border border-tech-emerald bg-tech-emerald/20 p-6 text-center">
+                                        <h4 class="font-bold text-tech-emerald text-xl mb-2">Jawaban: Fenomena Phubbing</h4>
+                                        <p class="text-sm text-gray-200">Gawai memfasilitasi interaksi maya yang adiktif, mengakibatkan <b>phubbing</b>. Secara sosiologis, teknologi ini berisiko menjauhkan kedekatan primer antar anggota keluarga.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Flip Card 2 -->
+                            <div class="flip-card" onclick="this.classList.toggle('flipped'); playSFX('click')">
+                                <div class="flip-card-inner">
+                                    <div class="flip-card-front glass-panel rounded-xl shadow-lg border border-white/20 bg-black/40 p-6 text-center">
+                                        <i class="fa-solid fa-earth-americas text-4xl text-gray-400 mb-3"></i>
+                                        <p class="font-heading font-semibold text-tech-white text-lg">"Kita tidak perlu keliling dunia secara fisik untuk melihat isi dunia." Setuju?</p>
+                                    </div>
+                                    <div class="flip-card-back glass-panel rounded-xl shadow-lg border border-tech-gold bg-tech-gold/20 p-6 text-center">
+                                        <h4 class="font-bold text-tech-gold text-xl mb-2">Jawaban: Setuju (Borderless World)</h4>
+                                        <p class="text-sm text-gray-200">Setuju. Globalisasi menghilangkan batas ruang dan waktu. Melalui IPTEK, pertukaran informasi & budaya berlangsung <i>real-time</i> ke seluruh penjuru dunia.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 3: RUANG MATERI -->
+            <section id="section-materi" class="spa-section hidden-section animate-slide-up">
+                <!-- Navigasi Tab Internal -->
+                <div class="flex flex-wrap gap-2 mb-6 bg-black/30 p-2 rounded-xl border border-white/10">
+                    <button class="materi-tab px-4 py-2 rounded-lg font-heading text-sm font-bold bg-tech-emerald text-tech-bg transition" onclick="switchTab('tab-teori', this)">Teori Konsep</button>
+                    <button class="materi-tab px-4 py-2 rounded-lg font-heading text-sm font-bold text-gray-400 hover:text-white transition" onclick="switchTab('tab-digital', this)">Masyarakat Digital</button>
+                    <button class="materi-tab px-4 py-2 rounded-lg font-heading text-sm font-bold text-gray-400 hover:text-white transition" onclick="switchTab('tab-simulasi', this)"><i class="fa-solid fa-microchip text-tech-gold mr-1"></i> Simulator Kritis</button>
+                </div>
+
+                <!-- Tab Konten -->
+                <div id="tab-teori" class="materi-content block">
+                    <div class="glass-panel p-6 rounded-xl border-l-4 border-l-tech-emerald mb-4">
+                        <h3 class="font-heading text-2xl text-tech-emerald mb-2">Globalisasi & Transformasi Sistem Dunia</h3>
+                        <div class="text-sm text-gray-300 space-y-3 leading-relaxed">
+                            <p>Berdasarkan sosiolog <i>George Ritzer</i>, globalisasi adalah proses <i>transplanet</i> berupa peningkatan <b>likuiditas</b> arus barang, manusia, modal, dan informasi. Ini dipicu oleh penemuan internet dan revolusi IPTEK.</p>
+                            <p><b>Transformasi Global:</b> Negara terbagi atas sistem <i>Core</i> (Pusat / Negara Maju) dan <i>Peripheral</i> (Pinggiran / Negara Berkembang). Akibat dependensi (ketergantungan), negara maju menyuplai IPTEK & modal investasi, sedangkan negara berkembang membarter dengan tenaga kerja dan SDA.</p>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+                                <div class="bg-black/40 p-3 border border-white/10 rounded"><b class="text-tech-emerald">Ekonomi:</b> Perdagangan bebas & kapitalisme.</div>
+                                <div class="bg-black/40 p-3 border border-white/10 rounded"><b class="text-tech-gold">Politik:</b> Hubungan antarnegara (cth: PBB/WTO).</div>
+                                <div class="bg-black/40 p-3 border border-white/10 rounded"><b class="text-tech-crimson">Sosial:</b> Akulturasi vs Gegar Budaya (Culture Shock).</div>
+                                <div class="bg-black/40 p-3 border border-white/10 rounded"><b class="text-white">Lingkungan:</b> Eksploitasi SDA vs Gerakan Go Green.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-digital" class="materi-content hidden">
+                    <div class="glass-panel p-6 rounded-xl border-l-4 border-l-tech-gold mb-4">
+                        <h3 class="font-heading text-2xl text-tech-gold mb-2">Masyarakat Digital & Respons Sosial</h3>
+                        <div class="text-sm text-gray-300 space-y-3 leading-relaxed">
+                            <p>Interaksi kini berpindah ke dunia maya. Merujuk data BPS, akses media sosial menjadi tujuan utama masyarakat (95,5%). Hal ini membawa efisiensi distribusi, produksi, & e-commerce, namun juga mengancam pekerjaan manual (otomatisasi).</p>
+                            <p><b>Respons Masyarakat Terhadap Globalisasi:</b></p>
+                            <ul class="list-disc pl-5 space-y-2">
+                                <li><b class="text-tech-emerald">Proglobalisasi:</b> Mendukung pasar bebas (FDI) untuk kesejahteraan dunia. Contoh kolaborasi: G20, investasi infrastruktur digital.</li>
+                                <li><b class="text-tech-crimson">Antiglobalisasi (Skeptis):</b> Menolak atau ragu. Khawatir atas ketimpangan ekonomi (kemiskinan struktural), dominasi asing atas kebijakan lokal, dan hilangnya jati diri budaya <i>(Culture Lag)</i>.</li>
+                            </ul>
+                            <p class="pt-2 italic text-tech-gold">"Solusi utama untuk murid adalah memperkuat <b>Literasi Digital</b> guna menyaring hoaks (post-truth) dan berpartisipasi kritis di dunia maya."</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Simulasi Interaktif DOM -->
+                <div id="tab-simulasi" class="materi-content hidden">
+                    <div class="glass-panel p-6 rounded-xl bg-gradient-to-br from-white/5 to-black/40 border border-tech-gold/30">
+                        
+                        <!-- Mode Tampilan -->
+                        <div id="sim-view-mode">
+                            <div class="flex justify-between items-start mb-1">
+                                <h3 class="font-heading text-xl text-tech-white mb-1"><i class="fa-solid fa-microchip text-tech-gold mr-2"></i> Simulator Analisis Kritis Sosial</h3>
+                                <button onclick="toggleEditSim()" class="text-xs bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded text-tech-white border border-white/20 transition"><i class="fa-solid fa-pen-to-square mr-1"></i> Kelola Kasus</button>
+                            </div>
+                            <p class="text-xs text-gray-400 mb-4">Pilih kasus yang tersedia atau tambahkan kasus baru, lalu gunakan instrumen sosiologi untuk menganalisisnya.</p>
+                            
+                            <div class="mb-6">
+                                <label class="text-xs text-tech-gold font-mono uppercase font-bold tracking-wider">Pilih Kasus Analisis (Operator)</label>
+                                <select id="sim-case-select" class="w-full bg-black/50 border border-white/20 rounded px-3 py-2 text-white text-sm mt-2 focus:border-tech-emerald focus:outline-none transition" onchange="resetSimOutput()">
+                                    <!-- options diisi oleh JavaScript -->
+                                </select>
+                            </div>
+                            
+                            <div class="flex flex-wrap gap-4 justify-center mb-8">
+                                <button onclick="runAnalysis('ekonomi')" class="w-full md:w-36 py-2 rounded border border-tech-gold text-tech-gold hover:bg-tech-gold hover:text-black transition text-sm font-bold focus:outline-none"><i class="fa-solid fa-money-bill-trend-up"></i> Tinjauan Ekonomi</button>
+                                <button onclick="runAnalysis('sosial')" class="w-full md:w-36 py-2 rounded border border-blue-400 text-blue-400 hover:bg-blue-400 hover:text-black transition text-sm font-bold focus:outline-none"><i class="fa-solid fa-users"></i> Dampak Sosial</button>
+                                <button onclick="runAnalysis('budaya')" class="w-full md:w-36 py-2 rounded border border-pink-400 text-pink-400 hover:bg-pink-400 hover:text-black transition text-sm font-bold focus:outline-none"><i class="fa-solid fa-masks-theater"></i> Culture Lag</button>
+                            </div>
+
+                            <!-- Monitor Output -->
+                            <div class="bg-black p-4 rounded border-2 border-white/10 font-mono text-sm relative min-h-[140px]">
+                                <div class="absolute top-2 right-2 flex gap-1">
+                                    <div class="w-2 h-2 rounded-full bg-tech-crimson animate-pulse"></div>
+                                    <div class="w-2 h-2 rounded-full bg-tech-gold animate-pulse" style="animation-delay: 0.2s"></div>
+                                    <div class="w-2 h-2 rounded-full bg-tech-emerald animate-pulse" style="animation-delay: 0.4s"></div>
+                                </div>
+                                <div id="sim-output-text" class="text-gray-500 mt-4">> Sistem Analisis Kritis siaga. Menunggu perintah operator...</div>
+                                <div id="sim-result-kritis" class="text-tech-white mt-3 hidden border-l-2 border-tech-emerald pl-3 text-xs md:text-sm whitespace-pre-line leading-relaxed"></div>
+                            </div>
+                        </div>
+
+                        <!-- Mode Tambah / Edit Kasus -->
+                        <div id="sim-edit-mode" class="hidden">
+                            <h3 class="font-heading text-xl text-tech-gold mb-4"><i class="fa-solid fa-database mr-2"></i> Tambah Kasus Sosiologi Baru</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-xs text-tech-white mb-1">Nama Kasus / Skenario</label>
+                                    <textarea id="edit-sim-title" class="w-full bg-black/50 border border-white/20 rounded p-3 text-white text-sm focus:border-tech-emerald outline-none" rows="2" placeholder="Contoh: Masuknya tren K-Pop di kalangan remaja pedesaan..."></textarea>
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-tech-white mb-1">Analisis Tinjauan Ekonomi (Dampak & Solusi)</label>
+                                    <textarea id="edit-sim-eko" class="w-full bg-black/50 border border-white/20 rounded p-3 text-white text-sm focus:border-tech-emerald outline-none" rows="2" placeholder="Ketik analisis ekonomi Anda..."></textarea>
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-tech-white mb-1">Analisis Dampak Sosial (Dampak & Solusi)</label>
+                                    <textarea id="edit-sim-sos" class="w-full bg-black/50 border border-white/20 rounded p-3 text-white text-sm focus:border-tech-emerald outline-none" rows="2" placeholder="Ketik analisis sosial Anda..."></textarea>
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-tech-white mb-1">Analisis Tinjauan Budaya (Dampak & Solusi)</label>
+                                    <textarea id="edit-sim-bud" class="w-full bg-black/50 border border-white/20 rounded p-3 text-white text-sm focus:border-tech-emerald outline-none" rows="2" placeholder="Ketik analisis budaya Anda..."></textarea>
+                                </div>
+                                <div class="flex gap-3 justify-end mt-6 border-t border-white/10 pt-4">
+                                    <button onclick="toggleEditSim()" class="px-6 py-2 border border-white/20 text-white font-bold rounded hover:bg-white/10 transition">BATAL</button>
+                                    <button onclick="saveSimCase()" class="px-6 py-2 bg-tech-emerald text-tech-bg font-bold rounded shadow-[0_0_10px_#00F59B] hover:opacity-80 transition">SIMPAN DATA</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 4: EVALUASI (Kuis & Mini Game) -->
+            <section id="section-evaluasi" class="spa-section hidden-section animate-slide-up">
+                <!-- Sub Menu Evaluasi -->
+                <div class="flex flex-wrap gap-2 mb-6 bg-black/30 p-2 rounded-xl border border-white/10 justify-center">
+                    <button id="btn-tab-kuis" class="px-6 py-2 rounded-lg font-heading text-sm font-bold bg-tech-emerald text-tech-bg transition" onclick="switchEval('kuis')"><i class="fa-solid fa-list-check"></i> Asesmen Sumatif</button>
+                    <button id="btn-tab-game" class="px-6 py-2 rounded-lg font-heading text-sm font-bold text-gray-400 hover:text-white transition border border-white/10" onclick="switchEval('game')"><i class="fa-solid fa-puzzle-piece"></i> Sortir Dampak</button>
+                </div>
+
+                <!-- Modul KUIS -->
+                <div id="eval-kuis" class="block max-w-3xl mx-auto">
+                    <!-- Layar Awal Kuis -->
+                    <div id="kuis-start" class="glass-panel p-8 rounded-2xl text-center">
+                        <i class="fa-solid fa-laptop-code text-5xl text-tech-gold mb-4"></i>
+                        <h2 class="font-heading text-2xl font-bold mb-2">Asesmen Sumatif</h2>
+                        <p class="text-gray-400 mb-6 text-sm">20 Butir Soal bervariasi (LOTS & HOTS). Perhatikan label! Pada <b class="text-tech-crimson">PG Kompleks</b>, murid berhak memilih lebih dari 1 jawaban yang benar.</p>
+                        <button onclick="startQuiz()" class="px-8 py-3 bg-tech-gold text-black font-bold rounded-lg hover:bg-yellow-400 transition animate-glow">MULAI ASESMEN <i class="fa-solid fa-qrcode ml-2"></i></button>
+                    </div>
+
+                    <!-- Layar Kuis Aktif -->
+                    <div id="kuis-active" class="hidden glass-panel p-6 md:p-8 rounded-2xl">
+                        <div class="flex justify-between items-center mb-4 border-b border-white/10 pb-4">
+                            <span class="text-tech-emerald font-mono text-sm border border-tech-emerald px-2 py-1 rounded">SYS_Q: <span id="q-counter">1/20</span></span>
+                            <span class="text-tech-gold font-mono text-sm">SCORE: <span id="q-score">0</span></span>
+                        </div>
+                        
+                        <div id="q-type-badge" class="mb-4 inline-block px-2 py-1 bg-white/10 text-xs font-bold rounded text-gray-300 uppercase">TIPE SOAL</div>
+                        <h3 id="q-text" class="text-lg md:text-xl font-heading mb-6 text-tech-white leading-relaxed"></h3>
+                        
+                        <div id="q-options" class="flex flex-col gap-3">
+                            <!-- Tombol generate via JS -->
+                        </div>
+                        
+                        <div class="mt-6 flex justify-end gap-3">
+                            <button id="btn-submit-q" onclick="submitComplexAns()" class="hidden px-6 py-2 bg-tech-gold text-black font-bold rounded hover:bg-yellow-400 transition">KUNCI JAWABAN <i class="fa-solid fa-lock"></i></button>
+                            <button id="btn-next-q" onclick="nextQuestion()" class="hidden px-6 py-2 bg-white/10 text-white font-bold rounded hover:bg-white/20 transition">BERIKUTNYA <i class="fa-solid fa-forward-step"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- Layar Hasil Kuis -->
+                    <div id="kuis-result" class="hidden glass-panel p-8 rounded-2xl text-center">
+                        <h2 class="font-heading text-3xl font-bold mb-2">ANALISIS SELESAI</h2>
+                        <div class="text-6xl font-black text-tech-emerald my-6 drop-shadow-[0_0_15px_#00F59B]" id="final-score">100</div>
+                        <p id="final-msg" class="text-gray-300 mb-8"></p>
+                        <div class="flex justify-center gap-4">
+                            <button onclick="startQuiz()" class="px-6 py-2 border border-white/20 rounded text-sm hover:bg-white/10 transition"><i class="fa-solid fa-rotate-right"></i> Ulangi</button>
+                            <button onclick="switchEval('game')" class="px-6 py-2 bg-tech-emerald text-black font-bold rounded text-sm shadow-[0_0_10px_#00F59B] hover:bg-opacity-80 transition"><i class="fa-solid fa-gamepad"></i> Main Game Sortir</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modul GAME SORTING -->
+                <div id="eval-game" class="hidden max-w-4xl mx-auto">
+                    <div class="flex justify-between items-center mb-2 border-b border-white/10 pb-4">
+                        <span class="text-tech-emerald font-mono text-sm border border-tech-emerald px-2 py-1 rounded">LEVEL: <span id="game-counter">1/3</span></span>
+                    </div>
+                    <div class="text-center mb-4 mt-2">
+                        <h3 class="font-heading text-2xl text-tech-white" id="game-title">Kategorisasi Dampak Sosial</h3>
+                        <p class="text-sm text-tech-gold"><i class="fa-solid fa-info-circle"></i> Sentuh/klik kartu di tengah, lalu pilih wadah tujuan (Positif atau Negatif).</p>
+                    </div>
+
+                    <!-- Bank Data Game -->
+                    <div class="glass-panel p-4 mb-6 rounded-xl border-dashed border-2 border-white/20 min-h-[100px] flex flex-wrap justify-center gap-2 items-center" id="game-bank">
+                        <!-- Digenerate JS -->
+                    </div>
+
+                    <!-- Dropzone Positif & Negatif -->
+                    <div class="grid grid-cols-2 gap-4 md:gap-8">
+                        <!-- Dropzone Positif -->
+                        <div class="glass-panel p-4 rounded-xl border-t-4 border-t-tech-emerald flex flex-col items-center cursor-pointer hover:bg-tech-emerald/10 transition" onclick="handleDrop('positif')">
+                            <div class="w-12 h-12 rounded-full bg-tech-emerald/20 text-tech-emerald flex items-center justify-center text-2xl mb-2 border border-tech-emerald"><i class="fa-solid fa-plus"></i></div>
+                            <h4 class="font-bold text-tech-emerald mb-4">Efek Positif</h4>
+                            <div id="zone-positif" class="w-full flex flex-col gap-2 min-h-[150px]"></div>
+                        </div>
+
+                        <!-- Dropzone Negatif -->
+                        <div class="glass-panel p-4 rounded-xl border-t-4 border-t-tech-crimson flex flex-col items-center cursor-pointer hover:bg-tech-crimson/10 transition" onclick="handleDrop('negatif')">
+                            <div class="w-12 h-12 rounded-full bg-tech-crimson/20 text-tech-crimson flex items-center justify-center text-2xl mb-2 border border-tech-crimson"><i class="fa-solid fa-minus"></i></div>
+                            <h4 class="font-bold text-tech-crimson mb-4">Efek Negatif</h4>
+                            <div id="zone-negatif" class="w-full flex flex-col gap-2 min-h-[150px]"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mt-6 flex justify-center gap-3">
+                        <button id="btn-validasi-game" onclick="checkGame()" class="px-8 py-2 bg-tech-gold text-black font-bold rounded shadow-[0_0_10px_#FFD700] hover:bg-yellow-400 transition">VALIDASI DATA <i class="fa-solid fa-check-double"></i></button>
+                        <button id="btn-next-game" onclick="nextGameRound()" class="hidden px-8 py-2 bg-tech-emerald text-black font-bold rounded shadow-[0_0_10px_#00F59B] hover:opacity-80 transition">LEVEL SELANJUTNYA <i class="fa-solid fa-forward"></i></button>
+                        <button onclick="initGame()" class="px-4 py-2 border border-white/20 text-white rounded hover:bg-white/10 transition" title="Ulangi Level"><i class="fa-solid fa-rotate-left"></i></button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 5: REFLEKSI -->
+            <section id="section-refleksi" class="spa-section hidden-section animate-slide-up h-full flex flex-col">
+                <div class="text-center mb-6">
+                    <h2 class="font-heading text-3xl font-bold text-tech-white"><i class="fa-solid fa-rss text-tech-gold mr-2"></i> Papan Umpan Balik</h2>
+                    <p class="text-gray-400 text-sm">Bagikan perasaan dan pesan refleksi kritis murid setelah mempelajari modul ini.</p>
+                </div>
+                
+                <div class="flex-1 grid md:grid-cols-3 gap-6 overflow-hidden">
+                    <!-- Form Input -->
+                    <div class="glass-panel p-6 rounded-xl border-t-2 border-t-tech-gold h-fit overflow-y-auto max-h-full">
+                        <form id="form-refleksi" onsubmit="postReflection(event)">
+                            <div class="mb-4">
+                                <label class="block text-xs text-tech-gold mb-1 font-mono uppercase">Nama Murid</label>
+                                <input type="text" id="ref-name" required class="w-full bg-black/50 border border-white/20 rounded px-3 py-2 text-white focus:outline-none focus:border-tech-emerald text-sm" placeholder="Nama Lengkap / Inisial">
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-xs text-tech-gold mb-2 font-mono uppercase">Perasaan Setelah Belajar</label>
+                                <div class="flex justify-between px-2">
+                                    <button type="button" class="text-3xl emoji-btn" onclick="selectEmoji(this, '😊')" title="Paham & Senang">😊</button>
+                                    <button type="button" class="text-3xl emoji-btn" onclick="selectEmoji(this, '🤯')" title="Mindblown / Terkejut">🤯</button>
+                                    <button type="button" class="text-3xl emoji-btn" onclick="selectEmoji(this, '🤔')" title="Berpikir Kritis">🤔</button>
+                                    <button type="button" class="text-3xl emoji-btn" onclick="selectEmoji(this, '😴')" title="Masih Bingung">😴</button>
+                                </div>
+                                <input type="hidden" id="ref-emoji" value="" required>
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-xs text-tech-gold mb-1 font-mono uppercase">Apa satu hal baru yang Ananda pelajari hari ini?</label>
+                                <textarea id="ref-hal-baru" required rows="3" class="w-full bg-black/50 border border-white/20 rounded px-3 py-2 text-white focus:outline-none focus:border-tech-emerald text-sm resize-none" placeholder="Tuliskan hal baru yang dipelajari..."></textarea>
+                            </div>
+                            <button type="submit" class="w-full py-2 bg-tech-emerald text-black font-bold font-heading rounded hover:opacity-90 transition mt-2">TRANSMIT DATA <i class="fa-solid fa-satellite-dish ml-1"></i></button>
+                        </form>
+                    </div>
+
+                    <!-- Area Sticky Notes -->
+                    <div class="md:col-span-2 glass-panel p-4 rounded-xl border border-white/10 bg-black/20 overflow-y-auto relative" id="reflection-board">
+                        
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 6: PENGEMBANG -->
+            <section id="section-pengembang" class="spa-section hidden-section animate-slide-up h-full overflow-y-auto">
+                <div class="min-h-full flex flex-col items-center justify-center py-8">
+                    <div class="glass-panel p-6 md:p-8 lg:p-12 rounded-3xl max-w-4xl w-full border-t-4 border-t-tech-emerald flex flex-col md:flex-row gap-8 items-center bg-gradient-to-br from-black/60 to-tech-bg shadow-[0_0_30px_rgba(0,245,155,0.1)] relative overflow-hidden">
+                        
+                        <!-- Hiasan Background -->
+                        <div class="absolute -top-20 -right-20 w-64 h-64 bg-tech-emerald/10 rounded-full blur-[50px] pointer-events-none"></div>
+                        <div class="absolute -bottom-20 -left-20 w-64 h-64 bg-tech-gold/10 rounded-full blur-[50px] pointer-events-none"></div>
+                    
+                    <!-- Hiasan Background -->
+                    <div class="absolute -top-20 -right-20 w-64 h-64 bg-tech-emerald/10 rounded-full blur-[50px] pointer-events-none"></div>
+                    <div class="absolute -bottom-20 -left-20 w-64 h-64 bg-tech-gold/10 rounded-full blur-[50px] pointer-events-none"></div>
+
+                    <!-- Foto Profil -->
+                    <div class="flex-shrink-0 relative z-20">
+                        <div class="w-48 h-48 md:w-64 md:h-64 rounded-full overflow-hidden border-4 border-tech-gold shadow-[0_0_20px_rgba(255,215,0,0.5)] mx-auto bg-black flex items-center justify-center">
+                            <!-- Link Diperbarui ke lh3 googleusercontent direct & thumbnail -->
+                            <img src="https://lh3.googleusercontent.com/d/1ffJzV3b6pEkx8B3Yi_IP8LN9UwIQ3KHc" alt="Gusti Dewi Monalisa" class="w-full h-full object-cover object-center" onerror="this.onerror=null; this.src='https://drive.google.com/thumbnail?id=1ffJzV3b6pEkx8B3Yi_IP8LN9UwIQ3KHc&sz=w800';">
+                        </div>
+                    </div>
+                    
+                    <!-- Detail Informasi -->
+                    <div class="flex-1 z-10 text-center md:text-left w-full flex flex-col justify-center py-2">
+                        <h2 class="font-heading text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold text-tech-white mb-6 drop-shadow-md tracking-wide whitespace-nowrap">Gusti Dewi Monalisa R, S.Sos.</h2>
+                        
+                        <div class="text-sm md:text-base text-gray-300 space-y-3 mb-6 border-b border-white/10 pb-6 inline-block md:block w-full">
+                            <p class="flex items-center justify-center md:justify-start gap-3"><i class="fa-solid fa-school text-tech-emerald w-5 text-center"></i> SMAN 1 BP Mandoge</p>
+                            <p class="flex items-center justify-center md:justify-start gap-3"><i class="fa-solid fa-book text-tech-gold w-5 text-center"></i> Mata Pelajaran Sosiologi</p>
+                            <p class="flex items-center justify-center md:justify-start gap-3"><i class="fa-solid fa-envelope text-tech-crimson w-5 text-center"></i> gustidewimonalisa74@gmail.com</p>
+                        </div>
+                        
+                        <p class="text-sm md:text-base italic text-gray-400 mb-6 leading-relaxed bg-black/30 p-4 rounded-xl border border-white/5">
+                            "Hidup adalah sebuah perjalanan tanpa henti untuk terus meng-upgrade diri. Tidak ada kata terlambat untuk memulai, karena setiap proses memiliki indahnya masing-masing."
+                        </p>
+                        
+                        <ul class="text-sm md:text-base text-tech-white space-y-3 mb-8 font-bold text-left mx-auto max-w-sm md:max-w-none md:mx-0">
+                            <li class="flex items-center gap-2"><span class="text-tech-emerald">1.</span> 📚 BELAJAR tanpa henti.</li>
+                            <li class="flex items-center gap-2"><span class="text-tech-gold">2.</span> 🌱 BERTUMBUH tanpa batas.</li>
+                            <li class="flex items-center gap-2"><span class="text-tech-crimson">3.</span> 🛠️ BERKARYA tanpa ragu.</li>
+                            <li class="flex items-center gap-2"><span class="text-blue-400">4.</span> 🤲 BERBAGI tanpa pamrih.</li>
+                        </ul>
+                        
+                        <p class="text-tech-emerald font-heading font-bold text-lg md:text-xl animate-pulse mt-2 mb-2">Semangat berproses dan menebar manfaat! 🔥</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 7: REFERENSI -->
+            <section id="section-referensi" class="spa-section hidden-section animate-slide-up h-full overflow-y-auto">
+                <div class="min-h-full flex flex-col items-center justify-center py-8">
+                    <div class="glass-panel p-6 md:p-8 lg:p-12 rounded-3xl max-w-4xl w-full border-t-4 border-t-tech-gold flex flex-col gap-8 bg-gradient-to-br from-black/60 to-tech-bg shadow-[0_0_30px_rgba(255,215,0,0.1)] relative overflow-hidden">
+                        
+                        <!-- Hiasan Background -->
+                        <div class="absolute -top-20 -right-20 w-64 h-64 bg-tech-gold/10 rounded-full blur-[50px] pointer-events-none"></div>
+                        <div class="absolute -bottom-20 -left-20 w-64 h-64 bg-tech-emerald/10 rounded-full blur-[50px] pointer-events-none"></div>
+
+                        <div class="text-center mb-2 relative z-10">
+                            <h2 class="font-heading text-3xl md:text-4xl font-extrabold text-tech-white mb-2"><i class="fa-solid fa-book-bookmark text-tech-gold mr-3"></i>Referensi Data</h2>
+                            <p class="text-gray-400 text-sm">Daftar pustaka dan atribusi aset yang digunakan dalam Media Pembelajaran Interaktif ini.</p>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
+                            <!-- Sumber Materi -->
+                            <div class="glass-panel p-6 rounded-xl border-l-4 border-l-tech-emerald bg-white/5 hover:bg-white/10 transition flex flex-col">
+                                <h3 class="font-heading text-xl font-bold text-tech-emerald mb-4 flex items-center gap-2 border-b border-white/10 pb-2"><i class="fa-solid fa-book-open"></i> Sumber Materi</h3>
+                                <p class="text-gray-300 text-sm md:text-base leading-relaxed mt-2">
+                                    Purwasih, Joan Hesti Gita dan Seli Septiani Pratiwi. 2022. <i>Sosiologi SMA/MA Kelas XII</i>. Kemendikbudristek RI.
+                                </p>
+                            </div>
+                            
+                            <!-- Sumber Aset -->
+                            <div class="glass-panel p-6 rounded-xl border-l-4 border-l-tech-crimson bg-white/5 hover:bg-white/10 transition flex flex-col">
+                                <h3 class="font-heading text-xl font-bold text-tech-crimson mb-4 flex items-center gap-2 border-b border-white/10 pb-2"><i class="fa-solid fa-wand-magic-sparkles"></i> Sumber Aset Visual dan Audio</h3>
+                                <p class="text-gray-300 text-sm md:text-base leading-relaxed mt-2">
+                                    Seluruh aset visual dan audio dalam MPI ini dibuat menggunakan teknologi Artificial Intelligence (AI) yaitu Gemini.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- 4. FOOTER & DOCK CONTROL -->
+    <footer class="h-16 glass-panel border-t-0 border-white/10 flex justify-between items-center px-4 md:px-8 z-20 shrink-0 rounded-t-xl mx-2 mb-2">
+        <button id="btn-prev" onclick="navSeq(-1)" class="px-4 py-1.5 border border-white/30 text-white rounded text-xs md:text-sm font-bold font-heading hover:border-tech-emerald hover:text-tech-emerald hover:shadow-[0_0_10px_#00F59B] transition flex items-center gap-2">
+            <i class="fa-solid fa-caret-left"></i> SEBELUMNYA
+        </button>
+        
+        <div class="text-[10px] md:text-xs text-gray-500 font-mono tracking-widest text-center">
+            &copy; bumonamengajar | 2026<br><span class="hidden md:inline">SIMULATOR SOSIOLOGI V1.0</span>
+        </div>
+
+        <button id="btn-next" onclick="navSeq(1)" class="px-4 py-1.5 border border-white/30 text-white rounded text-xs md:text-sm font-bold font-heading hover:border-tech-emerald hover:text-tech-emerald hover:shadow-[0_0_10px_#00F59B] transition flex items-center gap-2">
+            SELANJUTNYA <i class="fa-solid fa-caret-right"></i>
+        </button>
+    </footer>
+
+    <script>
+        // --- State Management Navigasi ---
+        const sections = ['home', 'konsep', 'materi', 'evaluasi', 'refleksi', 'pengembang', 'referensi'];
+        let currentIndex = 0;
+
+        // --- Web Audio API (Synthesizer) ---
+        let audioCtx;
+        let isAudioEnabled = true;
+
+        function initAudio() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function toggleAudio() {
+            isAudioEnabled = !isAudioEnabled;
+            const icon = document.getElementById('audio-icon');
+            if (isAudioEnabled) {
+                icon.className = "fa-solid fa-volume-high text-tech-gold";
+            } else {
+                icon.className = "fa-solid fa-volume-xmark text-gray-500";
+            }
+        }
+
+        function playSFX(type) {
+            if (!isAudioEnabled) return;
+            initAudio();
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            if (type === 'click') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.05);
+                gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.1);
+            } else if (type === 'correct') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+                osc.frequency.setValueAtTime(600, audioCtx.currentTime + 0.1);
+                osc.frequency.setValueAtTime(800, audioCtx.currentTime + 0.2);
+                gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.4);
+            } else if (type === 'wrong') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(250, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.3);
+                gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.4);
+            }
+        }
+
+        // --- Custom Alert ---
+        function customAlert(msg, title = "Informasi", type = "info") {
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-message').innerText = msg;
+            
+            const iconEl = document.getElementById('alert-icon');
+            const alertBox = document.querySelector('#custom-alert > div:nth-child(2)');
+            
+            if (type === 'error') {
+                iconEl.innerHTML = '<i class="fa-solid fa-circle-xmark text-tech-crimson"></i>';
+                alertBox.className = "glass-panel p-6 rounded-2xl max-w-sm w-full mx-4 relative z-10 text-center animate-slide-up border-tech-crimson border-2";
+            } else if (type === 'success') {
+                iconEl.innerHTML = '<i class="fa-solid fa-circle-check text-tech-emerald"></i>';
+                alertBox.className = "glass-panel p-6 rounded-2xl max-w-sm w-full mx-4 relative z-10 text-center animate-slide-up border-tech-emerald border-2";
+            } else {
+                iconEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-tech-gold"></i>';
+                alertBox.className = "glass-panel p-6 rounded-2xl max-w-sm w-full mx-4 relative z-10 text-center animate-slide-up border-tech-gold border-2";
+            }
+
+            document.getElementById('custom-alert').classList.remove('hidden');
+            playSFX('click');
+        }
+
+        function closeAlert() {
+            document.getElementById('custom-alert').classList.add('hidden');
+            playSFX('click');
+        }
+
+        function confirmExit() {
+            customAlert("Fitur ini akan mengeluarkan Anda dari Dashboard. Sampai jumpa!", "Keluar Modul", "info");
+        }
+
+        // --- Navigasi ---
+        function updateProgress(index) {
+            const pct = ((index + 1) / sections.length) * 100;
+            document.getElementById('progress-bar').style.width = pct + '%';
+        }
+
+        function navigate(sectionId, index) {
+            playSFX('click');
+            currentIndex = index;
+            
+            // Hide all
+            document.querySelectorAll('.spa-section').forEach(el => el.classList.add('hidden-section'));
+            // Remove active from sidebar
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+                btn.classList.add('text-tech-white');
+            });
+            
+            // Show target
+            document.getElementById('section-' + sectionId).classList.remove('hidden-section');
+            
+            // Set active sidebar
+            const activeBtn = document.getElementById('nav-' + sectionId);
+            activeBtn.classList.remove('text-tech-white');
+            activeBtn.classList.add('active');
+
+            // Update Progress & Footer buttons
+            updateProgress(currentIndex);
+            
+            const btnPrev = document.getElementById('btn-prev');
+            const btnNext = document.getElementById('btn-next');
+            
+            btnPrev.style.visibility = (currentIndex === 0) ? 'hidden' : 'visible';
+            btnNext.style.visibility = (currentIndex === sections.length - 1) ? 'hidden' : 'visible';
+        }
+
+        function navSeq(dir) {
+            const nextIdx = currentIndex + dir;
+            if (nextIdx >= 0 && nextIdx < sections.length) {
+                navigate(sections[nextIdx], nextIdx);
+            }
+        }
+
+        // --- Tab Materi Internal ---
+        function switchTab(tabId, btnEl) {
+            playSFX('click');
+            document.querySelectorAll('.materi-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.materi-tab').forEach(btn => {
+                btn.classList.remove('bg-tech-emerald', 'text-tech-bg');
+                if(!btn.innerHTML.includes('fa-sliders')){
+                   btn.classList.add('text-gray-400'); 
+                }
+            });
+            
+            document.getElementById(tabId).classList.remove('hidden');
+            btnEl.classList.add('bg-tech-emerald', 'text-tech-bg');
+            btnEl.classList.remove('text-gray-400');
+            
+            // Render kasus simulasi jika tab simulasi dibuka
+            if(tabId === 'tab-simulasi' && document.getElementById('sim-case-select').options.length === 0) {
+                renderSimCases();
+            }
+        }
+
+        // --- Simulasi DOM Kritis (Dinamis) ---
+        let simCases = [
+            {
+                title: "MNC Asing Membangun Pabrik AI di Desa Tradisional",
+                ekonomi: "[ANALISIS]: Sesuai teori dependensi, MNC dari negara maju memanfaatkan warga lokal sebagai buruh kasar upah rendah. Otomatisasi AI akan menyingkirkan tenaga kerja unskilled (tidak terampil).\n\n[SOLUSI]: Negosiasi regulasi transfer knowledge/teknologi. Murid dan warga wajib melakukan upskilling/reskilling kompetensi digital.",
+                sosial: "[ANALISIS]: Muncul pelapisan sosial baru antara kaum industri dan petani. Pola hubungan primer gotong royong bergeser menjadi ikatan transaksional (solidaritas organik) yang individualis.\n\n[SOLUSI]: Revitalisasi kelembagaan desa. Mewajibkan perusahaan menjalankan CSR untuk pemberdayaan ruang publik inklusif.",
+                budaya: "[ANALISIS]: Transformasi teknologi melaju pesat, sedangkan mental masyarakat melaju lambat, memicu Culture Lag. Lahir gaya hidup hedonis dan memudarnya kearifan lokal.\n\n[SOLUSI]: Memperkuat literasi budaya dan filterisasi (Glokalisasi) agar masyarakat menjaga identitas bangsa di tengah modernisasi."
+            }
+        ];
+
+        function renderSimCases() {
+            const select = document.getElementById('sim-case-select');
+            select.innerHTML = '';
+            simCases.forEach((c, index) => {
+                const opt = document.createElement('option');
+                opt.value = index;
+                opt.innerText = `[KASUS 0${index + 1}] - ${c.title.substring(0,40)}...`;
+                select.appendChild(opt);
+            });
+        }
+
+        function toggleEditSim() {
+            playSFX('click');
+            const view = document.getElementById('sim-view-mode');
+            const edit = document.getElementById('sim-edit-mode');
+            if (edit.classList.contains('hidden')) {
+                view.classList.add('hidden');
+                edit.classList.remove('hidden');
+                // Reset form
+                document.getElementById('edit-sim-title').value = '';
+                document.getElementById('edit-sim-eko').value = '';
+                document.getElementById('edit-sim-sos').value = '';
+                document.getElementById('edit-sim-bud').value = '';
+            } else {
+                edit.classList.add('hidden');
+                view.classList.remove('hidden');
+            }
+        }
+
+        function saveSimCase() {
+            const title = document.getElementById('edit-sim-title').value;
+            const eko = document.getElementById('edit-sim-eko').value;
+            const sos = document.getElementById('edit-sim-sos').value;
+            const bud = document.getElementById('edit-sim-bud').value;
+            
+            if(!title || !eko || !sos || !bud) {
+                customAlert("Harap isi semua instrumen analisis (Ekonomi, Sosial, Budaya) untuk kasus ini!", "Form Belum Lengkap", "error");
+                return;
+            }
+            
+            simCases.push({ title: title, ekonomi: eko, sosial: sos, budaya: bud });
+            renderSimCases();
+            document.getElementById('sim-case-select').value = simCases.length - 1; // Auto select new case
+            
+            toggleEditSim();
+            resetSimOutput();
+            playSFX('correct');
+            customAlert("Kasus Simulasi Sosiologi baru berhasil ditambahkan ke database!", "Berhasil Disimpan", "success");
+        }
+
+        function resetSimOutput() {
+            document.getElementById('sim-result-kritis').classList.add('hidden');
+            document.getElementById('sim-output-text').innerText = "> Sistem Analisis Kritis siaga. Menunggu perintah operator...";
+            document.getElementById('sim-output-text').className = "text-gray-500 mt-4";
+        }
+
+        function runAnalysis(type) {
+            playSFX('click');
+            const selectIdx = document.getElementById('sim-case-select').value;
+            const activeCase = simCases[selectIdx];
+            
+            document.getElementById('sim-result-kritis').classList.add('hidden');
+            const statusEl = document.getElementById('sim-output-text');
+            
+            statusEl.innerText = "> Menjalankan mesin analitik kritis untuk sektor [" + type.toUpperCase() + "]...";
+            statusEl.classList.remove('text-gray-500');
+            statusEl.classList.add('text-tech-gold', 'animate-pulse');
+            
+            setTimeout(() => {
+                statusEl.classList.remove('animate-pulse');
+                let outText = activeCase[type] || "Data instrumen analisis tidak ditemukan.";
+                
+                statusEl.innerText = `> Laporan Diagnostik Selesai [ Kasus: ${activeCase.title.substring(0,25)}... ]`;
+                const posEl = document.getElementById('sim-result-kritis');
+                
+                posEl.innerText = outText;
+                posEl.classList.remove('hidden');
+                playSFX('correct');
+            }, 800);
+        }
+
+        // --- Evaluasi: Navigasi Kuis/Game ---
+        function switchEval(mode) {
+            playSFX('click');
+            if(mode === 'kuis') {
+                document.getElementById('eval-kuis').classList.remove('hidden');
+                document.getElementById('eval-game').classList.add('hidden');
+                document.getElementById('btn-tab-kuis').classList.add('bg-tech-emerald', 'text-tech-bg');
+                document.getElementById('btn-tab-kuis').classList.remove('text-gray-400', 'border');
+                document.getElementById('btn-tab-game').classList.remove('bg-tech-emerald', 'text-tech-bg');
+                document.getElementById('btn-tab-game').classList.add('text-gray-400', 'border');
+            } else {
+                document.getElementById('eval-kuis').classList.add('hidden');
+                document.getElementById('eval-game').classList.remove('hidden');
+                document.getElementById('btn-tab-game').classList.add('bg-tech-emerald', 'text-tech-bg');
+                document.getElementById('btn-tab-game').classList.remove('text-gray-400', 'border');
+                document.getElementById('btn-tab-kuis').classList.remove('bg-tech-emerald', 'text-tech-bg');
+                document.getElementById('btn-tab-kuis').classList.add('text-gray-400', 'border');
+                initGame();
+            }
+        }
+
+        // --- Data Kuis ---
+        const qData = [
+            { type: 'single', q: "Konsep 'Borderless World' dalam era globalisasi digital bermakna bahwa...", o: ["Masyarakat harus menutup diri dari luar", "Sistem perdagangan hanya sebatas barter fisik", "Dunia beroperasi tanpa batas teritorial yang kaku", "Negara wajib dijaga ketat secara militer", "Setiap individu menolak keras kemajuan teknologi asing"], a: 2, lvl: 'LOTS' },
+            { type: 'single', q: "Menurut sosiolog George Ritzer, ciri globalisasi dapat dibuktikan dengan tingginya 'likuiditas'. Contoh konkret dari fenomena ini adalah...", o: ["Terhentinya mobilitas penduduk karena batas negara", "Pertukaran budaya, modal, dan informasi bergerak masif seketika", "Pemutusan jaringan internet nasional (Blokade)", "Perekonomian yang mutlak dikendalikan sistem barter", "Isolasi daerah pelosok dari campur tangan luar"], a: 1, lvl: 'HOTS' },
+            { type: 'single', q: "Ketika masyarakat belum siap menerima kemajuan teknologi digital secara moral dan etika, sehingga terjadi ketimpangan, gejala sosiologis ini disebut...", o: ["Culture Shock", "Culture Lag (Ketertinggalan Budaya)", "Phubbing / Keterasingan Sosial", "Etnosentrisme Modern", "Asimilasi Budaya Digital"], a: 1, lvl: 'LOTS' },
+            { type: 'single', q: "Keluarga sedang berkumpul secara fisik, namun masing-masing anggota sibuk berinteraksi maya via gawai (Phubbing). Fenomena ini bertentangan dengan esensi...", o: ["Distribusi pemerataan ekonomi warga", "Kedekatan serta kehangatan interaksi sosial primer", "Kerjasama politik dan oligarki regional", "Dominasi kekuatan hukum dan militer", "Pertumbuhan investasi multinasional"], a: 1, lvl: 'HOTS' },
+            { type: 'single', q: "Sikap 'Berpikir Global, Bertindak Lokal' yang sering disebut Glokalisasi dapat diterapkan oleh murid dengan cara...", o: ["Menolak mentah semua produk dari budaya asing", "Menerima dan meniru gaya kebarat-baratan secara buta", "Mempromosikan kearifan lokal seperti batik melalui e-commerce global", "Menghapus kurikulum muatan lokal di institusi pendidikan", "Memutus jaringan komunikasi internet dari desa"], a: 2, lvl: 'HOTS' },
+            { type: 'single', q: "Kelompok Proglobalisasi percaya bahwa arus pasar bebas itu penting. Alasan logis yang mendasari pandangan kelompok ini adalah...", o: ["Globalisasi memicu sikap skeptisisme mutlak", "Berlandaskan ideologi sosialisme sentralisasi", "Mendorong modernisasi, pemerataan dagang, dan peningkatan devisa", "Percaya bahwa isolasi teritorial memperkuat kedaulatan", "Mengutamakan etnosentrisme radikal dalam perekonomian"], a: 2, lvl: 'LOTS' },
+            { type: 'single', q: "Alasan sosiologis mengapa kelompok Antiglobalisasi (Skeptis) menentang dan menolak derasnya arus globalisasi budaya adalah karena ketakutan terhadap...", o: ["Bertambahnya porsi cadangan devisa negara", "Tercapainya pemerataan infrastruktur digital", "Hilangnya kearifan asli dan jati diri budaya lokal bangsa", "Berakhirnya era perang dingin dan bipolarisasi dunia", "Melimpahnya ketersediaan lapangan kerja manufaktur"], a: 2, lvl: 'LOTS' },
+            { type: 'single', q: "Penguatan literasi digital penting bagi murid agar tidak termakan post-truth (hoaks) yang dapat memecah belah bangsa. Solusi ini secara langsung mengatasi dampak negatif di bidang...", o: ["Kestabilan Sektor Ekonomi Perbankan", "Harmonisasi Sosial dan Integrasi Politik Demokrasi", "Eksploitasi Masif Sumber Daya Alam", "Tingkat Konsumerisme Belanja Digital", "Ancaman Substitusi Tenaga Kerja oleh Robot AI"], a: 1, lvl: 'HOTS' },
+            { type: 'single', q: "Dalam kacamata Teori Dependensi, negara berkembang bergantung pada investor MNC asing. Kerugian sosiologis utama bagi kelas pekerja (proletar) adalah...", o: ["Program transfer teknologi berjalan dengan sangat adil", "Risiko eksploitasi tenaga buruh lokal dengan upah rendah", "Perekonomian antar kelas sosial menjadi sangat merata", "Lingkungan ekosistem pabrik menjadi lebih terawat", "Sistem jaminan sosial pekerja langsung melonjak tajam"], a: 1, lvl: 'HOTS' },
+            { type: 'single', q: "Kampanye pemadaman listrik global 'Earth Hour' menunjukkan gerakan kepedulian masyarakat dunia merespons ancaman krisis di sektor...", o: ["Stabilitas Ekonomi Makro", "Perkembangan Industri Senjata Militer", "Lingkungan Hidup (Pemanasan Global / Perubahan Iklim)", "Ancaman Sistem Politik Otoriter", "Epidemi Kesehatan Global"], a: 2, lvl: 'LOTS' },
+            { type: 'single', q: "Otomatisasi industri oleh Kecerdasan Buatan (AI) mengancam ketersediaan lapangan kerja manual. Langkah paling logis dan sosiologis untuk mengatasinya adalah...", o: ["Melakukan demonstrasi untuk menghancurkan server AI perusahaan", "Mengadakan pelatihan ulang (Reskilling/Upskilling) kompetensi digital SDM", "Memblokir 100% semua akses perdagangan e-commerce nasional", "Melakukan sabotase sistem listrik nasional agar pabrik berhenti", "Menerima pasrah pengurangan upah dan jam kerja sepihak"], a: 1, lvl: 'HOTS' },
+            { type: 'single', q: "Kemudahan layanan belanja daring e-commerce mempercepat proses transaksi. Secara sosial, efek laten negatif yang ditimbulkan adalah mendorong masyarakat pada gaya hidup...", o: ["Produktif dan efisien", "Kolektif dan gotong royong", "Konsumtif dan hedonistik", "Normatif dan patuh aturan", "Tradisional dan konservatif"], a: 2, lvl: 'LOTS' },
+            { type: 'single', q: "Dunia digital terasa makin kecil, seolah berada dalam genggaman, sementara waktu seakan bergerak jauh lebih cepat. Gejala sosiologis modern ini disebut...", o: ["Etnosentrisme Kultural", "Kompression Ruang dan Waktu (Time-Space Compression)", "Ketergantungan Teritorial (Dependensi)", "Struktur Organisasi Oligarki", "Restorasi Nilai Imperialisme Baru"], a: 1, lvl: 'LOTS' },
+            { type: 'single', q: "Pesatnya pertumbuhan profesi baru seperti Vlogger, Podcaster, atau Content Creator menunjukkan bahwa era digital membuka ladang pekerjaan masif di ranah...", o: ["Sistem Birokrasi Politik", "Eksploitasi Agrikultur Tradisional", "Ekonomi Kreatif dan Hiburan Digital", "Manufaktur Pabrik dan Perakitan", "Eksplorasi Pertambangan Alam"], a: 2, lvl: 'LOTS' },
+            { type: 'single', q: "Tingginya intensitas ujaran kebencian atau Cyberbullying antar 'Netizen' dalam ruang interaksi digital, membuktikan bahwa saat ini masyarakat masih mengalami defisit yang parah dalam hal...", o: ["Kecepatan Akses Pita Lebar (Broadband)", "Algoritma Kecerdasan Buatan (AI)", "Etika Kesantunan Berkomunikasi dan Literasi Digital", "Kapasitas Kuota Data Nasional", "Kemutakhiran Perangkat Keras Komputer"], a: 2, lvl: 'HOTS' },
+            
+            // Soal Tipe Kompleks
+            { type: 'complex', q: "Manakah pernyataan di bawah ini yang merupakan karakteristik dari 'Teori Ketergantungan' (Dependensi) sistem dunia di era modernisasi?", o: ["Negara Pusat (Maju) bertindak mensuplai modal dan teknologi raksasa", "Negara Pinggiran (Berkembang) sukses mengekspor teknologi tinggi ke Pusat", "Negara Berkembang diuntungkan secara mutlak dari segala transaksi", "Negara Pinggiran umumnya hanya dimanfaatkan sebagai penyedia buruh murah dan SDA", "Pusat sangat bergantung hidup pada pinjaman utang dari negara Pinggiran"], a: [0, 3], lvl: 'HOTS' },
+            { type: 'complex', q: "Dari daftar berikut, tentukan apa saja yang tergolong sebagai TANTANGAN (Dampak Negatif) krusial era masyarakat digital!", o: ["Meningkatnya grafik kejahatan siber pencurian data (Cybercrime)", "Masuknya dana investasi asing (FDI) yang memperluas lapangan kerja", "Semakin liarnya penyebaran misinformasi dan hoaks politik (Post-truth)", "Lompatan efisiensi pada sistem distribusi dan produksi logistik", "Terhapusnya sekat pemisah teritorial antar negara secara administratif"], a: [0, 2], lvl: 'HOTS' },
+            { type: 'complex', q: "Apa saja alasan utama dan rasional yang sering disuarakan kelompok Skeptis (Antiglobalisasi) dalam menolak kapitalisme global?", o: ["Ketakutan akan dominasi sepihak perusahaan multinasional raksasa asing", "Kecemasan melihat kerusakan dan eksploitasi lingkungan demi industri", "Dorongan untuk segera melunasi dan mengurangi beban utang luar negeri", "Perasaan terancam tergerusnya tradisi dan kearifan identitas nasional", "Ambisi kuat untuk memperluas ekspansi militer menaklukkan negara lain"], a: [0, 1, 3], lvl: 'HOTS' },
+            { type: 'complex', q: "Berdasarkan modul, tindakan murid yang paling mencerminkan kecakapan 'Literasi Digital' di tengah atmosfer dunia maya yang bebas adalah...", o: ["Asal meneruskan (forward) pesan berantai (broadcast) WhatsApp dari sumber anonim", "Membudayakan sikap verifikasi fakta, serta mampu menahan emosi agar tak terjebak debat kusir", "Konsisten menjaga kesopanan dan etika saat menulis komentar (Netiquette) di akun publik", "Menjadikan interaksi layar gawai sebagai fokus prioritas saat sedang makan malam keluarga", "Sengaja membuka setiap link promosi hadiah yang muncul karena rasa ingin tahu yang tinggi"], a: [1, 2], lvl: 'HOTS' },
+            { type: 'complex', q: "Berikut ini, opsi manakah yang merupakan manifestasi atau perwujudan sikap Glokalisasi (Think Globally, Act Locally) secara tepat?", o: ["Restoran franchise cepat saji internasional sengaja memasukkan 'Nasi Goreng Sambal Matah' ke dalam menunya", "Para pemuda desa secara sadar meninggalkan bahasa ibu dan total menggunakan bahasa asing demi terlihat elit", "Pecinta kriya lokal memasarkan dan menjual hasil ukiran kayu tradisional Jepara melalui situs Amazon / eBay", "Pemerintah menerbitkan regulasi yang mengisolasi total dan melarang semua turis asing menjejakkan kaki", "Sekelompok warga meniru tren tarian viral luar negeri sambil memakai atribut pakaian adat Nusantara"], a: [0, 2, 4], lvl: 'HOTS' }
+        ];
+
+        let qIndex = 0, score = 0, qAnswered = false;
+        let selectedComplexAns = [];
+
+        function startQuiz() {
+            playSFX('click');
+            qIndex = 0; score = 0;
+            document.getElementById('kuis-start').classList.add('hidden');
+            document.getElementById('kuis-result').classList.add('hidden');
+            document.getElementById('kuis-active').classList.remove('hidden');
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            qAnswered = false; selectedComplexAns = [];
+            document.getElementById('q-counter').innerText = `${qIndex + 1}/20`;
+            document.getElementById('q-score').innerText = score;
+            document.getElementById('btn-next-q').classList.add('hidden');
+            document.getElementById('btn-submit-q').classList.add('hidden');
+            
+            const q = qData[qIndex];
+            document.getElementById('q-text').innerText = q.q;
+            
+            const badge = document.getElementById('q-type-badge');
+            if(q.type === 'complex') {
+                badge.innerText = `PG KOMPLEKS (${q.lvl}) - PILIH LEBIH DARI 1 JAWABAN BENAR`;
+                badge.className = "mb-4 inline-block px-3 py-1 bg-tech-crimson/30 text-tech-crimson border border-tech-crimson text-xs font-bold rounded uppercase";
+                document.getElementById('btn-submit-q').classList.remove('hidden');
+            } else {
+                badge.innerText = `PG BIASA (${q.lvl}) - PILIH 1 JAWABAN BENAR`;
+                badge.className = "mb-4 inline-block px-3 py-1 bg-tech-emerald/30 text-tech-emerald border border-tech-emerald text-xs font-bold rounded uppercase";
+            }
+            
+            const optionsBox = document.getElementById('q-options');
+            optionsBox.innerHTML = '';
+            
+            q.o.forEach((optText, i) => {
+                const btn = document.createElement('button');
+                if(q.type === 'complex'){
+                    btn.className = "complex-opt text-left w-full p-4 border border-white/10 rounded-lg bg-black/40 hover:border-tech-gold hover:text-tech-gold transition text-gray-300 focus:outline-none";
+                    btn.innerHTML = `<span class="inline-block w-8 text-center font-mono opacity-50 mr-2">[ ]</span> ${optText}`;
+                    btn.onclick = () => toggleComplexAns(i, btn);
+                } else {
+                    btn.className = "text-left w-full p-4 border border-white/10 rounded-lg bg-black/40 hover:border-tech-gold hover:text-tech-gold transition text-gray-300 focus:outline-none";
+                    btn.innerHTML = `<span class="inline-block w-8 text-center font-mono opacity-50 mr-2">[${String.fromCharCode(65+i)}]</span> ${optText}`;
+                    btn.onclick = () => selectAns(i, btn);
+                }
+                optionsBox.appendChild(btn);
+            });
+        }
+
+        // Event Soal Tipe Kompleks
+        function toggleComplexAns(selIdx, btnEl) {
+            if(qAnswered) return;
+            playSFX('click');
+            const idxPos = selectedComplexAns.indexOf(selIdx);
+            
+            if(idxPos > -1) {
+                selectedComplexAns.splice(idxPos, 1);
+                btnEl.classList.remove('selected', 'border-tech-emerald', 'text-tech-emerald', 'bg-tech-emerald/20');
+                btnEl.innerHTML = `<span class="inline-block w-8 text-center font-mono opacity-50 mr-2">[ ]</span> ${qData[qIndex].o[selIdx]}`;
+            } else {
+                selectedComplexAns.push(selIdx);
+                btnEl.classList.add('selected', 'border-tech-emerald', 'text-tech-emerald', 'bg-tech-emerald/20');
+                btnEl.innerHTML = `<span class="inline-block w-8 text-center font-mono opacity-50 mr-2">[✓]</span> ${qData[qIndex].o[selIdx]}`;
+            }
+        }
+
+        function submitComplexAns() {
+            if(qAnswered) return;
+            if(selectedComplexAns.length === 0) {
+                customAlert("Pilih setidaknya satu jawaban sebelum validasi!", "Info Kuis", "info");
+                return;
+            }
+            
+            qAnswered = true;
+            document.getElementById('btn-submit-q').classList.add('hidden');
+            
+            const q = qData[qIndex];
+            const correctAns = q.a;
+            
+            // Validasi Cocok (Panjang sama, dan isi elemen array-nya sama)
+            const isCorrect = (selectedComplexAns.length === correctAns.length) && 
+                            selectedComplexAns.every(val => correctAns.includes(val));
+
+            const allBtns = document.getElementById('q-options').children;
+            for(let i=0; i<allBtns.length; i++) {
+                allBtns[i].onclick = null;
+                allBtns[i].classList.remove('selected', 'hover:border-tech-gold', 'hover:text-tech-gold');
+                
+                if(correctAns.includes(i)) {
+                    allBtns[i].classList.add('border-tech-emerald', 'bg-tech-emerald/20', 'text-tech-emerald');
+                } else if(selectedComplexAns.includes(i) && !correctAns.includes(i)) {
+                    allBtns[i].classList.add('border-tech-crimson', 'bg-tech-crimson/20', 'text-tech-crimson');
+                } else {
+                    allBtns[i].classList.add('opacity-30');
+                }
+            }
+
+            if(isCorrect) {
+                playSFX('correct');
+                score += 5; // 20 soal x 5 = 100
+                document.getElementById('q-score').innerText = score;
+            } else {
+                playSFX('wrong');
+            }
+            document.getElementById('btn-next-q').classList.remove('hidden');
+        }
+
+        // Event Soal Tipe Tunggal Biasa
+        function selectAns(selIdx, btnEl) {
+            if(qAnswered) return;
+            qAnswered = true;
+            
+            const q = qData[qIndex];
+            const isCorrect = (selIdx === q.a);
+            
+            const allBtns = document.getElementById('q-options').children;
+            for(let i=0; i<allBtns.length; i++) {
+                allBtns[i].onclick = null;
+                allBtns[i].classList.remove('hover:border-tech-gold', 'hover:text-tech-gold');
+                
+                if(i === q.a) {
+                    allBtns[i].classList.add('border-tech-emerald', 'bg-tech-emerald/20', 'text-tech-emerald');
+                } else if(i === selIdx && !isCorrect) {
+                    allBtns[i].classList.add('border-tech-crimson', 'bg-tech-crimson/20', 'text-tech-crimson');
+                } else {
+                    allBtns[i].classList.add('opacity-30');
+                }
+            }
+
+            if(isCorrect) {
+                playSFX('correct');
+                score += 5;
+                document.getElementById('q-score').innerText = score;
+            } else {
+                playSFX('wrong');
+            }
+            
+            document.getElementById('btn-next-q').classList.remove('hidden');
+        }
+
+        function nextQuestion() {
+            playSFX('click');
+            qIndex++;
+            if (qIndex < qData.length) {
+                loadQuestion();
+            } else {
+                finishQuiz();
+            }
+        }
+
+        function finishQuiz() {
+            document.getElementById('kuis-active').classList.add('hidden');
+            document.getElementById('kuis-result').classList.remove('hidden');
+            document.getElementById('final-score').innerText = score;
+            
+            if(score >= 80) {
+                playSFX('correct');
+                confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#00F59B', '#FFD700'] });
+                document.getElementById('final-msg').innerText = "Status: EXCELLENT. Analisis memuaskan.";
+            } else {
+                playSFX('click');
+                document.getElementById('final-msg').innerText = "Status: WARNING. Perlu pendalaman teori sosiologi lebih lanjut.";
+            }
+        }
+
+        // --- Evaluasi Game: Sortir Dampak ---
+        const gameRounds = [
+            {
+                title: "Level 1: Dampak Ekonomi & Sosial",
+                items: [
+                    { id: 'item1_1', text: 'Kemudahan Kolaborasi Lintas Negara', type: 'positif' },
+                    { id: 'item1_2', text: 'Masuknya Perusahaan Multinasional mematikan UMKM', type: 'negatif' },
+                    { id: 'item1_3', text: 'Transfer Teknologi Digital yang Efisien', type: 'positif' },
+                    { id: 'item1_4', text: 'Eksploitasi Alam akibat Industrialisasi', type: 'negatif' },
+                    { id: 'item1_5', text: 'Fenomena Phubbing dan Erosi Interaksi Sosial', type: 'negatif' }
+                ]
+            },
+            {
+                title: "Level 2: Dampak Lingkungan & Politik",
+                items: [
+                    { id: 'item2_1', text: 'Gerakan Penghijauan Global (Earth Hour)', type: 'positif' },
+                    { id: 'item2_2', text: 'Kerusakan Ekosistem Akibat Limbah Pabrik Asing', type: 'negatif' },
+                    { id: 'item2_3', text: 'Mendorong Pemerintahan yang Transparan (E-Gov)', type: 'positif' },
+                    { id: 'item2_4', text: 'Dominasi Kebijakan Politik oleh Negara Maju', type: 'negatif' },
+                    { id: 'item2_5', text: 'Kerja Sama Bilateral Antarnegara', type: 'positif' }
+                ]
+            },
+            {
+                title: "Level 3: Identitas & Budaya Digital",
+                items: [
+                    { id: 'item3_1', text: 'Lunturnya Jati Diri dan Kearifan Lokal', type: 'negatif' },
+                    { id: 'item3_2', text: 'Glokalisasi Budaya melalui E-Commerce', type: 'positif' },
+                    { id: 'item3_3', text: 'Penyebaran Hoaks (Post-Truth) di Media Sosial', type: 'negatif' },
+                    { id: 'item3_4', text: 'Toleransi Terhadap Keberagaman Global', type: 'positif' },
+                    { id: 'item3_5', text: 'Gegar Budaya (Culture Shock) di Kalangan Lansia', type: 'negatif' }
+                ]
+            }
+        ];
+
+        let currentGameRound = 0;
+        let selectedItem = null;
+
+        function initGame() {
+            playSFX('click');
+            const roundData = gameRounds[currentGameRound];
+            
+            document.getElementById('game-counter').innerText = `${currentGameRound + 1}/3`;
+            document.getElementById('game-title').innerText = roundData.title;
+            
+            document.getElementById('btn-validasi-game').classList.remove('hidden');
+            document.getElementById('btn-next-game').classList.add('hidden');
+
+            const bank = document.getElementById('game-bank');
+            bank.innerHTML = '';
+            document.getElementById('zone-positif').innerHTML = '';
+            document.getElementById('zone-negatif').innerHTML = '';
+            selectedItem = null;
+
+            roundData.items.forEach(item => {
+                const el = document.createElement('div');
+                el.id = item.id;
+                el.dataset.type = item.type;
+                el.className = "game-item bg-black/50 border border-white/30 text-sm px-3 py-2 rounded-lg text-center select-none shadow-md max-w-[200px]";
+                el.innerText = item.text;
+                el.onclick = (e) => selectGameItem(el, e);
+                bank.appendChild(el);
+            });
+        }
+
+        function selectGameItem(el, e) {
+            e.stopPropagation();
+            playSFX('click');
+            if(selectedItem) {
+                selectedItem.classList.remove('selected');
+            }
+            if(selectedItem === el) {
+                selectedItem = null;
+            } else {
+                selectedItem = el;
+                el.classList.add('selected');
+            }
+        }
+
+        function handleDrop(zoneId) {
+            if(!selectedItem) return;
+            playSFX('click');
+            const zone = document.getElementById('zone-' + zoneId);
+            zone.appendChild(selectedItem);
+            selectedItem.classList.remove('selected');
+            selectedItem.classList.replace('bg-black/50', 'bg-white/10');
+            selectedItem = null;
+        }
+
+        function checkGame() {
+            let correct = 0;
+            let totalMoved = 0;
+            const currentItemsCount = gameRounds[currentGameRound].items.length;
+
+            ['positif', 'negatif'].forEach(zoneType => {
+                const container = document.getElementById('zone-' + zoneType);
+                const items = container.querySelectorAll('.game-item');
+                totalMoved += items.length;
+                
+                items.forEach(el => {
+                    if (el.dataset.type === zoneType) {
+                        correct++;
+                        el.classList.add('border-tech-emerald', 'text-tech-emerald');
+                        el.classList.remove('border-tech-crimson', 'text-tech-crimson', 'border-white/30');
+                    } else {
+                        el.classList.add('border-tech-crimson', 'text-tech-crimson');
+                        el.classList.remove('border-tech-emerald', 'text-tech-emerald', 'border-white/30');
+                    }
+                });
+            });
+
+            if (totalMoved < currentItemsCount) {
+                customAlert("Sortir semua kartu data dari bank sebelum validasi!", "System Error", "error");
+                return;
+            }
+
+            if (correct === currentItemsCount) {
+                playSFX('correct');
+                confetti({ particleCount: 100, spread: 60, origin: { y: 0.7 }, colors: ['#00F59B'] });
+                
+                if (currentGameRound < gameRounds.length - 1) {
+                    customAlert("Validasi sukses! Seluruh dampak diklasifikasikan dengan benar. Silakan lanjut ke level berikutnya.", "Berhasil", "success");
+                    document.getElementById('btn-validasi-game').classList.add('hidden');
+                    document.getElementById('btn-next-game').classList.remove('hidden');
+                } else {
+                    customAlert("Luar Biasa! Anda telah menyelesaikan seluruh level permainan Sortir Dampak dengan sempurna.", "Tamat", "success");
+                    currentGameRound = 0; // Reset ke awal jika ingin main lagi
+                    document.getElementById('btn-validasi-game').classList.add('hidden');
+                    const btnNext = document.getElementById('btn-next-game');
+                    btnNext.classList.remove('hidden');
+                    btnNext.innerHTML = `MAIN LAGI <i class="fa-solid fa-rotate-left"></i>`;
+                }
+            } else {
+                playSFX('wrong');
+                customAlert(`Akurasi: ${correct}/${currentItemsCount}. Periksa penanda merah untuk klasifikasi yang salah.`, "Data Inakurat", "error");
+            }
+        }
+
+        function nextGameRound() {
+            const btnNext = document.getElementById('btn-next-game');
+            if(btnNext.innerHTML.includes("MAIN LAGI")) {
+                btnNext.innerHTML = `LEVEL SELANJUTNYA <i class="fa-solid fa-forward"></i>`;
+            } else {
+                currentGameRound++;
+            }
+            initGame();
+        }
+
+        // --- Papan Refleksi ---
+        function selectEmoji(btnEl, emojiStr) {
+            playSFX('click');
+            document.querySelectorAll('.emoji-btn').forEach(b => b.classList.remove('active'));
+            btnEl.classList.add('active');
+            document.getElementById('ref-emoji').value = emojiStr;
+        }
+
+        function postReflection(e) {
+            e.preventDefault();
+            const name = document.getElementById('ref-name').value;
+            const halBaru = document.getElementById('ref-hal-baru').value;
+            const emoji = document.getElementById('ref-emoji').value;
+
+            if(!name || !halBaru || !emoji) {
+                customAlert("Pastikan Anda sudah mengklik emoji perasaan dan mengisi seluruh form refleksi.", "Form Belum Lengkap", "error");
+                return;
+            }
+
+            const board = document.getElementById('reflection-board');
+            const newHtml = `
+                <div class="reflection-card bg-white/10 backdrop-blur-sm border-l-4 border-tech-emerald p-4 mb-3 rounded shadow-md animate-slide-up relative group">
+                    <button onclick="this.closest('.reflection-card').remove(); playSFX('click')" class="absolute top-2 right-2 text-gray-400 hover:text-tech-crimson opacity-0 group-hover:opacity-100 transition" title="Hapus Data"><i class="fa-solid fa-trash"></i></button>
+                    <h4 class="font-bold text-tech-emerald text-sm mb-1 flex justify-between items-center border-b border-white/10 pb-2 pr-6">
+                        <span><i class="fa-solid fa-user-astronaut text-xs mr-1"></i> ${name}</span>
+                        <span class="text-xl">${emoji}</span>
+                    </h4>
+                    <p class="text-sm text-gray-200 mt-2"><span class="text-tech-gold text-[10px] uppercase font-bold block mb-1">Hal Baru yang Dipelajari:</span>${halBaru}</p>
+                </div>
+            `;
+            
+            board.insertAdjacentHTML('afterbegin', newHtml);
+            document.getElementById('ref-name').value = '';
+            document.getElementById('ref-hal-baru').value = '';
+            document.querySelectorAll('.emoji-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('ref-emoji').value = '';
+            
+            playSFX('correct');
+            customAlert("Data log refleksi Anda berhasil diposting ke server lokal.", "Terkirim", "success");
+        }
+
+        // Inisialisasi tampilan awal & tombol footer
+        window.onload = () => {
+            updateProgress(0);
+            document.getElementById('btn-prev').style.visibility = 'hidden';
+            initGame();
+        };
+
+    </script>
+</body>
+</html>
